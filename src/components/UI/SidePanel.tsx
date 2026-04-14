@@ -17,8 +17,8 @@ const SidePanel: React.FC<SidePanelProps> = ({ title, side, state, targets, aiEn
   const iconBg = isPlayer ? "bg-player/20" : "bg-enemy/20";
 
   return (
-    <aside className={`flex-shrink-0 lg:w-72 bg-panel/60 backdrop-blur p-4 overflow-y-auto z-20 ${isPlayer ? "border-r" : "border-l"} border-border`}>
-      <div className="space-y-4">
+    <aside className={`flex-shrink-0 lg:w-72 bg-panel/60 backdrop-blur p-4 h-full flex flex-col z-20 ${isPlayer ? "border-r" : "border-l"} border-border`}>
+      <div className="flex-1 flex flex-col min-h-0 space-y-4">
         <div className="flex items-center gap-3 pb-3 border-b border-border">
           <div className={`w-10 h-10 rounded ${iconBg} border ${iconBorder} flex items-center justify-center`}>
             <span className={`font-display font-bold ${iconColor}`}>{isPlayer ? "P" : "A"}</span>
@@ -74,9 +74,9 @@ const SidePanel: React.FC<SidePanelProps> = ({ title, side, state, targets, aiEn
         </div>
 
         {/* Facilities */}
-        <div className="pt-3 border-t border-border">
+        <div className="pt-3 border-t border-border flex-1 flex flex-col min-h-0">
           <h3 className="text-xs text-muted mb-2">FACILITIES STATUS</h3>
-          <div className="space-y-2">
+          <div className="space-y-2 overflow-y-auto pr-2 custom-scrollbar flex-1">
             {targets.map(t => (
               <div key={t.id} className={`flex items-center gap-2 p-1.5 rounded bg-card/50 border border-border/30 ${t.hp <= 0 ? "opacity-40" : ""}`}>
                 <span className="text-sm">{TARGET_TYPES[t.type].icon}</span>

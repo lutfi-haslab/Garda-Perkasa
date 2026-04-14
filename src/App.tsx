@@ -11,7 +11,7 @@ import { useGameState } from "./hooks/useGameState";
 // UI Components
 import Header from "./components/UI/Header";
 import SidePanel from "./components/UI/SidePanel";
-import BattleLog from "./components/UI/BattleLog";
+import WarRoomLog from "./components/UI/WarRoomLog";
 import AttackInterface from "./components/UI/AttackInterface";
 import AiConfigPanel from "./components/UI/AiConfigPanel";
 import GameOverOverlay from "./components/UI/GameOverOverlay";
@@ -69,12 +69,14 @@ const App: React.FC = () => {
         )}
 
         {/* Left Side: Player Status */}
-        <SidePanel 
-          title="IRAN" 
-          side="player" 
-          state={playerState} 
-          targets={playerTargets} 
-        />
+        <div className="w-80 flex-shrink-0 border-r border-border bg-panel/10">
+          <SidePanel 
+            title="IRAN (IRGC)" 
+            side="player" 
+            state={playerState} 
+            targets={playerTargets} 
+          />
+        </div>
 
         {/* Center: Map Area */}
         <main className="flex-1 relative border-border/30 border-y lg:border-y-0">
@@ -92,6 +94,13 @@ const App: React.FC = () => {
               onTargetClick={(target) => setGameState(prev => ({ ...prev, selectedTarget: target }))}
             />
           </MapContainer>
+
+          {/* War Room Log Overlay */}
+          <div className="absolute bottom-4 left-4 right-4 h-48 z-[1000] pointer-events-none">
+            <div className="h-full w-full max-w-2xl pointer-events-auto">
+              <WarRoomLog logs={battleLogs} />
+            </div>
+          </div>
 
           {/* Start Simulation Overlay */}
           {!isStarted && (
@@ -137,17 +146,16 @@ const App: React.FC = () => {
         </main>
 
         {/* Right Side: Enemy Status */}
-        <SidePanel 
-          title="ISRAEL" 
-          side="enemy" 
-          state={enemyState} 
-          targets={enemyTargets}
-          aiEngine={gameState.aiEngine}
-        />
+        <div className="w-80 flex-shrink-0 border-l border-border bg-panel/20">
+          <SidePanel 
+            title="COALITION FORCES" 
+            side="enemy" 
+            state={enemyState} 
+            targets={enemyTargets}
+            aiEngine={gameState.aiEngine}
+          />
+        </div>
       </div>
-
-      {/* Footer Log */}
-      <BattleLog logs={battleLogs} />
     </div>
   );
 };

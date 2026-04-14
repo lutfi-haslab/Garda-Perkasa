@@ -176,11 +176,15 @@ export const useGameState = () => {
 
     // Trigger explosion at target location
     const target = targets.find((t) => t.id === targetId);
-    if (target) addExplosion(target.lat, target.lng);
+    if (target) {
+        addExplosion(target.lat, target.lng);
+        addLog(`DIRECT HIT: ${TARGET_TYPES[target.type].name} at ${target.lat.toFixed(2)}, ${target.lng.toFixed(2)} [HP -${damage}]`, isPlayerTarget ? "enemy" : "player");
+    }
 
     targetsSetter((prev) =>
       applyDamageToTargets(prev, targetId, damage, (destroyedTarget) => {
         const effects = calculateTargetDestroyedEffect(destroyedTarget);
+        addLog(`TARGET DESTROYED: ${TARGET_TYPES[destroyedTarget.type].name}. Secondary effects impacting strategic metrics.`, "danger");
         updateSideState(side, effects);
       }),
     );
@@ -218,7 +222,7 @@ export const useGameState = () => {
     );
 
     setTimeout(() => {
-      applyDamage(target.id, weapon === "missile" ? 30 : 10, target.side);
+      applyDamage(target.id, weapon === "missile" ? 40 : 25, target.side);
       setGameState((prev) => ({ ...prev, selectedTarget: null }));
     }, 1500);
   };
@@ -310,7 +314,7 @@ export const useGameState = () => {
           setTimeout(() => {
             applyDamage(
               target.id,
-              weapon === "missile" ? 30 : 10,
+              weapon === "missile" ? 40 : 25,
               side === "player" ? "enemy" : "player",
             );
           }, 1500);
