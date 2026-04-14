@@ -30,6 +30,7 @@ const App: React.FC = () => {
     battleLogs,
     activeAttacks,
     activeExplosions,
+    aiThoughts,
     isStarted,
     startSimulation,
     launchAttack,
@@ -75,6 +76,8 @@ const App: React.FC = () => {
             side="player" 
             state={playerState} 
             targets={playerTargets} 
+            aiThought={aiThoughts.player}
+            aiEngine={gameState.gameMode === "AvA" ? gameState.aiEngine : undefined}
           />
         </div>
 
@@ -153,6 +156,7 @@ const App: React.FC = () => {
             state={enemyState} 
             targets={enemyTargets}
             aiEngine={gameState.aiEngine}
+            aiThought={aiThoughts.enemy}
           />
         </div>
       </div>

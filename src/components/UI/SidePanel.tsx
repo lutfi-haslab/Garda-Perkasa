@@ -8,9 +8,10 @@ interface SidePanelProps {
   state: PlayerState;
   targets: Target[];
   aiEngine?: string;
+  aiThought?: { targetName: string, rationale: string, strategy: string };
 }
 
-const SidePanel: React.FC<SidePanelProps> = ({ title, side, state, targets, aiEngine }) => {
+const SidePanel: React.FC<SidePanelProps> = ({ title, side, state, targets, aiEngine, aiThought }) => {
   const isPlayer = side === "player";
   const iconColor = isPlayer ? "text-player" : "text-enemy";
   const iconBorder = isPlayer ? "border-player" : "border-enemy";
@@ -95,18 +96,27 @@ const SidePanel: React.FC<SidePanelProps> = ({ title, side, state, targets, aiEn
           </div>
         </div>
 
-        {/* AI Extra Info */}
+        {/* AI Analysis Info */}
         {!isPlayer && aiEngine && (
-            <div className="pt-3 border-t border-border">
-                <h3 className="text-xs text-muted mb-2">AI STATUS</h3>
-                <div className="bg-card/50 border border-border/30 rounded p-3">
-                    <div className="flex items-center gap-2 mb-2">
-                        <div className="w-2 h-2 rounded-full bg-enemy animate-pulse"></div>
-                        <span className="text-xs font-display text-enemy">ACTIVE - {aiEngine.toUpperCase()}</span>
+            <div className="pt-3 border-t border-border mt-auto">
+                <h3 className="text-xs text-muted mb-2">TACTICAL ANALYSIS</h3>
+                <div className="bg-card/50 border border-border/30 rounded p-3 space-y-2">
+                    <div className="flex items-center gap-2 mb-1">
+                        <div className="w-1.5 h-1.5 rounded-full bg-enemy animate-pulse"></div>
+                        <span className="text-[10px] font-display text-enemy font-bold tracking-tight">{aiThought?.strategy || "ANALYZING..."}</span>
                     </div>
-                    <p className="text-[10px] text-muted uppercase leading-relaxed">
-                        Analyzing player weaknesses...
-                    </p>
+                    
+                    <div className="space-y-1">
+                        <div className="text-[9px] text-muted uppercase">Primary Objective:</div>
+                        <div className="text-[10px] text-white font-bold">{aiThought?.targetName || "RECONNAISSANCE"}</div>
+                    </div>
+
+                    <div className="space-y-1">
+                        <div className="text-[9px] text-muted uppercase">Rationale:</div>
+                        <p className="text-[10px] text-gray-300 leading-snug">
+                            {aiThought?.rationale || "Processing localized environmental and strategic data vectors..."}
+                        </p>
+                    </div>
                 </div>
             </div>
         )}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import type {
   GameState,
   PlayerState,
@@ -59,6 +59,12 @@ const generateRandomTargets = (
   return targets;
 };
 
+interface AiThought {
+  targetName: string;
+  rationale: string;
+  strategy: string;
+}
+
 export const useGameState = () => {
   const [gameState, setGameState] = useState<GameState>({
     day: 1,
@@ -97,6 +103,10 @@ export const useGameState = () => {
     { id: string; lat: number; lng: number }[]
   >([]);
   const [battleLogs, setBattleLogs] = useState<BattleLogEntry[]>([]);
+  const [aiThoughts, setAiThoughts] = useState<Record<string, AiThought>>({
+    player: { targetName: "None", rationale: "Passive Observation", strategy: "DEFENSIVE" },
+    enemy: { targetName: "None", rationale: "Passive Observation", strategy: "DEFENSIVE" }
+  });
 
   const addAttack = useCallback(
     (
@@ -183,12 +193,28 @@ export const useGameState = () => {
 
     targetsSetter((prev) =>
       applyDamageToTargets(prev, targetId, damage, (destroyedTarget) => {
-        const effects = calculateTargetDestroyedEffect(destroyedTarget);
-        addLog(`TARGET DESTROYED: ${TARGET_TYPES[destroyedTarget.type].name}. Secondary effects impacting strategic metrics.`, "danger");
-        updateSideState(side, effects);
+        addLog(`CRITICAL DAMAGE: ${TARGET_TYPES[destroyedTarget.type].name} neutralized.`, "danger");
       }),
     );
   };
+
+  const destroyedIds = useRef<Set<string>>(new Set());
+
+  // Watch for target destruction to apply global effects
+  useEffect(() => {
+    const checkDestruction = (current: Target[], side: "player" | "enemy") => {
+        current.forEach(t => {
+            if (t.hp === 0 && !destroyedIds.current.has(t.id)) {
+                destroyedIds.current.add(t.id);
+                const effects = calculateTargetDestroyedEffect(t);
+                updateSideState(side, effects);
+                addLog(`STRATEGIC LOSS: ${TARGET_TYPES[t.type].name} destruction impacting ${side} metrics.`, "danger");
+            }
+        });
+    };
+    checkDestruction(playerTargets, "player");
+    checkDestruction(enemyTargets, "enemy");
+  }, [playerTargets, enemyTargets, addLog]);
 
   const launchAttack = (weapon: "missile" | "drone") => {
     if (!gameState.selectedTarget) return;
@@ -225,6 +251,72 @@ export const useGameState = () => {
       applyDamage(target.id, weapon === "missile" ? 40 : 25, target.side);
       setGameState((prev) => ({ ...prev, selectedTarget: null }));
     }, 1500);
+  };
+
+  // Advanced AI Thinking (Local or DeepSeek)
+  const getAiRationale = async (target: Target, side: "player" | "enemy", context: any) => {
+    if (gameState.aiEngine === "deepseek" && gameState.apiKey) {
+      try {
+        const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${gameState.apiKey}`
+          },
+          body: JSON.stringify({
+            model: "deepseek-chat",
+            messages: [
+              { role: "system", content: "You are a senior tactical commander in the Garda Perkasa war simulation. Provide short, professional military rationale (max 20 words) for the chosen strike." },
+              { role: "user", content: `Target: ${TARGET_TYPES[target.type].name}. Side: ${side}. Context: Population ${context.opponentPop}%, Power ${context.opponentPower}%. Why this strike?` }
+            ]
+          })
+        });
+        const data = await response.json();
+        return {
+          rationale: data.choices[0].message.content,
+          strategy: "DEEPSEEK INTELLIGENCE"
+        };
+      } catch (e) {
+        console.error("DeepSeek Error:", e);
+      }
+    }
+
+    // Local Logic Fallback with Variety
+    const rationales = {
+        defense: [
+            "Neutralizing air defense batteries to open corridor for larger drone strikes.",
+            "Suppressing radar arrays to allow high-altitude missile penetration.",
+            "Ablating regional defense umbrella before primary infrastructure strike."
+        ],
+        electric: [
+            "Targeting electrical infrastructure to degrade enemy production and morale.",
+            "Inducing blackouts to disrupt command and control communications.",
+            "Energy grid interruption to stall defensive mobilization efforts."
+        ],
+        water: [
+            "Compromising water reserves to force civilian concessions.",
+            "Primary life-support system degradation to break local resistance.",
+            "Critical resource denial to destabilize regional hub."
+        ],
+        barrack: [
+            "Striking military mobilization centers to reduce counter-offensive capability.",
+            "Neutralizing troop concentrations to degrade front-line morale.",
+            "Command and personnel asset degradation."
+        ],
+        military: [
+            "Neutralizing command and control node to cause tactical blindness.",
+            "Precision strike on C2 center to halt automated response systems.",
+            "Strategic nexus degradation."
+        ]
+    };
+
+    const typeRationales = rationales[target.type as keyof typeof rationales] || ["Standard opportunistic strike on priority target."];
+    const strategies = ["SEAD OPERATIONS", "INFRASTRUCTURE DEGRADATION", "ATTRITION WARFARE", "STRATEGIC SUPPRESSION"];
+    
+    return {
+        rationale: typeRationales[Math.floor(Math.random() * typeRationales.length)],
+        strategy: `DOCTRINE: ${strategies[Math.floor(Math.random() * strategies.length)]}`
+    };
   };
 
   // Sophisticated Tactical AI Logic with Salvo Support
@@ -266,6 +358,7 @@ export const useGameState = () => {
         } else if (opponentState.power > 30 && currentMissileStock > 0) {
           target =
             availableTargets.find((t) => t.type === "electric") ||
+            availableTargets.find((t) => t.hp > 0) ||
             availableTargets[0];
           weapon = "missile";
         } else {
@@ -275,6 +368,23 @@ export const useGameState = () => {
             ];
           weapon = currentDroneStock > 0 ? "drone" : "missile";
         }
+
+        // Generate Thoughts
+        const thoughtContext = { 
+            opponentPop: opponentState.population, 
+            opponentPower: opponentState.power 
+        };
+        const thoughts = await getAiRationale(target, side, thoughtContext);
+
+        // Update AI Thought state
+        setAiThoughts(prev => ({
+          ...prev,
+          [side]: {
+            targetName: TARGET_TYPES[target.type].name,
+            rationale: thoughts.rationale,
+            strategy: thoughts.strategy
+          }
+        }));
 
         // Final safety check
         if (weapon === "missile" && currentMissileStock <= 0 && currentDroneStock > 0) weapon = "drone";
@@ -408,6 +518,7 @@ export const useGameState = () => {
     battleLogs,
     activeAttacks,
     activeExplosions,
+    aiThoughts,
     isStarted,
     startSimulation,
     launchAttack,
